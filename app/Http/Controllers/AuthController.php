@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -28,7 +29,7 @@ class AuthController extends Controller
             'password' => 'required',
             'phone' => 'required|string',
             'nik' => 'required|string',
-            'level' => 'required'
+            'level_id' => 'required'
         ]);
 
         try {
@@ -37,7 +38,7 @@ class AuthController extends Controller
             $user->email = $request->input('email');
             $user->phone = $request->input('phone');
             $user->nik = $request->input('nik');
-            $user->level_id = $request->input('level');
+            $user->level_id = $request->input('level_id');
             $user->password = app('hash')->make($request->input('password'));
             $user->save();
 
@@ -67,13 +68,41 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $credentials = $request->only(['email', 'password']);
-        if (! $token = Auth::attempt($credentials)) {			
-            return response()->json(['message' => 'Email atau Password salah'], 400);
+        $email = $request->input("email");
+        $password = $request->input("password");
+
+        $user = User::where("email", $email)->first();
+
+        if (!$user) {
+            $out = [
+                "message" => "Email tidak terdaftar",
+                "code"    => 401,
+            ];
+            return response()->json($out, $out['code']);
         }
-        return $this->respondWithToken($token);
+
+        if (Hash::check($password, $user->password)) {
+            $out = [
+                "message" => "Login Berhasil",
+                "code"    => 200,
+            ];
+        } else {
+            $out = [
+                "message" => "Password Salah",
+                "code"    => 401,
+            ];
+        }
+
+        return response()->json($out, $out['code']);
     }
 	
+    // public function logout()
+    // {
+    //     return response()->json([
+    //         'message' =>'Berhasil logout'
+    //     ], 200);
+    // }
+
      /**
      * Get user details.
      *
